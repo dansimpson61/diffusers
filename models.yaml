@@ -1,0 +1,12 @@
+defaults:
+  steps: 25
+  guidance: 7.0
+  width: 1024
+  height: 1024
+
+models:
+  - repo: Tongyi-MAI/Z-Image-Turbo
+  - repo: stabilityai/sdxl-turbo
+  - repo: stabilityai/stable-diffusion-xl-base-1.0
+  - repo: stable-diffusion-v1-5/stable-diffusion-v1-5
+  - repo: black-forest-labs/FLUX.1-schnell
