@@ -11,16 +11,16 @@ import random
 import re
 from pathlib import Path
 
+try:
+    import spaces
+except ImportError:
+    spaces = None
+
 import gradio as gr
 import torch
 import yaml
 from diffusers import AutoPipelineForImage2Image, DiffusionPipeline
 from huggingface_hub import model_info
-
-try:
-    import spaces
-except ImportError:
-    spaces = None
 
 
 def gpu_function(fn):
