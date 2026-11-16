@@ -5,3 +5,4 @@ accelerate
 safetensors
 PyYAML
 huggingface-hub
+spaces

@@ -17,6 +17,17 @@ import yaml
 from diffusers import AutoPipelineForImage2Image, DiffusionPipeline
 from huggingface_hub import model_info
 
+try:
+    import spaces
+except ImportError:
+    spaces = None
+
+
+def gpu_function(fn):
+    if spaces is not None:
+        return spaces.GPU(duration=120)(fn)
+    return fn
+
 CONFIG_PATH = Path(__file__).parent / "models.yaml"
 MAX_LOADED_PIPELINES = 2
 TEXT2IMG = "text2img"
@@ -121,13 +132,10 @@ def resolve_repo(value):
     return repo, f"Added **{repo}**."
 
 
-def defaults_for(repo, pipe):
+def defaults_for(repo, pipeline_class):
     defaults = dict(FALLBACK_DEFAULTS)
-    for base in type(pipe).__mro__:
-        name = base.__name__
-        if name in CLASS_DEFAULTS:
-            defaults.update(CLASS_DEFAULTS[name])
-            break
+    if pipeline_class in CLASS_DEFAULTS:
+        defaults.update(CLASS_DEFAULTS[pipeline_class])
     if repo in REPO_OVERRIDES:
         defaults.update(REPO_OVERRIDES[repo])
     return defaults
@@ -145,6 +153,7 @@ def round64(value):
     return max(64, int(value) // 64 * 64)
 
 
+@gpu_function
 def generate(selected, prompt, negative_prompt, mode, init_image, steps, guidance,
              width, height, strength, seed, randomize_seed):
     if not selected:
@@ -202,13 +211,24 @@ def toggle_mode(mode):
     return gr.update(visible=is_i2i), gr.update(visible=is_i2i)
 
 
+def pipeline_class_from_tags(repo):
+    try:
+        info = model_info(repo, token=hub_token())
+    except Exception as exc:
+        return None, f"Could not fetch Hub info for `{repo}`: {exc}"
+    for tag in info.tags or []:
+        if tag.startswith("diffusers:"):
+            return tag.split(":", 1)[1], ""
+    return None, f"`{repo}` does not advertise a diffusers pipeline class; adjust settings manually."
+
+
 def sync_defaults(selected):
     if len(selected) != 1:
-        return gr.update(), gr.update(), gr.update(), gr.update()
-    try:
-        defaults = defaults_for(selected[0], CACHE.get(selected[0]))
-    except Exception as exc:
-        return gr.update(), gr.update(), gr.update(), f"Could not load `{selected[0]}`: {exc}"
+        return gr.update(), gr.update(), gr.update(), ""
+    class_name, message = pipeline_class_from_tags(selected[0])
+    if class_name is None:
+        return gr.update(), gr.update(), gr.update(), message
+    defaults = defaults_for(selected[0], class_name)
     return (
         gr.update(value=defaults["steps"]),
         gr.update(value=defaults["guidance"]),
