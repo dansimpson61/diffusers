@@ -262,7 +262,7 @@ with gr.Blocks(title="Diffusers Comparison Playground") as demo:
                 randomize_seed = gr.Checkbox(value=True, label="Randomize seed")
             generate_btn = gr.Button("Generate", variant="primary")
         with gr.Column(scale=2):
-            gallery = gr.Gallery(columns=2, label="Results", show_download_button=True)
+            gallery = gr.Gallery(columns=2, label="Results")
             status = gr.Markdown()
 
     mode.change(toggle_mode, mode, [init_image, strength])
